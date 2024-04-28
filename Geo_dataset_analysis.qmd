@@ -1,0 +1,170 @@
+---
+title: "Geo_dataset_breast"
+author: "Akash  Chandra Baidya"
+format: revealjs
+editor: visual
+---
+
+<!-- ## Quarto -->
+
+<!-- Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>. -->
+
+<!-- ## Bullets -->
+
+<!-- When you click the **Render** button a document will be generated that includes: -->
+
+<!-- -   Content authored with markdown -->
+<!-- -   Output from executable code -->
+
+<!-- ## Code -->
+
+<!-- When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this: -->
+
+```{r}
+1 + 1
+```
+## Install Packages 
+```{r  }
+# install.packages("GEOquery")
+
+```
+## Get Breast Dataset 
+
+When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r }
+
+library(GEOquery)
+datasets <- c("GSE60518", "GSE56843", "GSE43346", "GSE44723", "GSE32474", "GSE21411", 
+              "GSE19804", "GSE10245", "GSE13525", "GSE9586", "GSE9008", "GSE5579", 
+              "GSE6013", "GSE6400", "GSE5059")
+
+
+# Download each dataset separately
+geo_data_list <- lapply(datasets, function(dataset) getGEO(dataset,GSEMatrix = TRUE))
+```
+## Find clinical variables and common ones
+```{r }
+
+# Function to extract clinical variables from a GEO dataset
+get_clinical_variables <- function(dataset) {
+  # Download dataset
+  geo_data <- getGEO(dataset, GSEMatrix = TRUE)
+  
+  # Extract clinical variables
+  clinical_data <- pData(phenoData(geo_data[[1]]))
+  clinical_variables <- colnames(clinical_data)
+  
+  return(clinical_variables)
+}
+
+# Apply the function to each dataset
+clinical_variables_list <- lapply(datasets, get_clinical_variables)
+
+# Calculate the frequency of each clinical variable across datasets
+clinical_variables_freq <- table(unlist(clinical_variables_list))
+
+# Filter for variables measured in the majority of datasets (e.g., in at least 50% of datasets)
+majority_variables <- names(clinical_variables_freq[clinical_variables_freq >= length(datasets)/2])
+
+# Print the identified clinical variables
+print(majority_variables)
+
+# Check if any clinical variables were identified
+if (length(clinical_variables_freq) > 0) {
+  # Check if each variable is measured in the majority of datasets
+  measured_in_majority <- names(clinical_variables_freq) %in% majority_variables
+  
+  # Create a data frame to summarize the information
+  summary_table <- data.frame(Variable = names(clinical_variables_freq),
+                              Frequency = as.numeric(clinical_variables_freq),
+                              Measured_in_Majority = measured_in_majority)
+  
+  # Print the summary table
+  print(summary_table)
+} else {
+  print("No clinical variables found in the datasets.")
+}
+
+#####
+# Function to retrieve variable meanings from the metadata
+get_variable_meanings <- function(dataset) {
+  # Download dataset
+  geo_data <- getGEO(dataset, GSEMatrix = TRUE)
+  
+  # Extract metadata
+  metadata <- pData(geo_data[[1]])
+  
+  # Return variable meanings from the metadata
+  return(metadata$description)
+}
+
+# Check if any clinical variables were identified
+if (length(clinical_variables_freq) > 0) {
+  # Check if each variable is measured in the majority of datasets
+  measured_in_majority <- names(clinical_variables_freq) %in% majority_variables
+  
+  # Create a data frame to summarize the information
+  summary_table <- data.frame(Variable = names(clinical_variables_freq),
+                              Frequency = as.numeric(clinical_variables_freq),
+                              Measured_in_Majority = measured_in_majority,
+                              Meaning = sapply(names(clinical_variables_freq), function(var) {
+                                # Retrieve variable meanings from metadata
+                                variable_meanings <- get_variable_meanings(datasets[1])
+                                # Return the meaning of the current variable or "Meaning not available"
+                                if (var <= length(variable_meanings)) {
+                                  return(variable_meanings[var])
+                                } else {
+                                  return("Meaning not available")
+                                }
+                              }))
+  
+  # Print the summary table
+  print(summary_table)
+} else {
+  print("No clinical variables found in the datasets.")
+}
+```
+
+
+## Find clinical variables and meaning
+```{r }
+
+# Function to retrieve variable meanings from the metadata
+get_variable_meanings <- function(dataset) {
+  # Download dataset
+  geo_data <- getGEO(dataset, GSEMatrix = TRUE)
+  
+  # Extract metadata
+  metadata <- pData(geo_data[[1]])
+  
+  # Return variable meanings from the metadata
+  return(metadata$description)
+}
+
+# Check if any clinical variables were identified
+if (length(clinical_variables_freq) > 0) {
+  # Check if each variable is measured in the majority of datasets
+  measured_in_majority <- names(clinical_variables_freq) %in% majority_variables
+  
+  # Create a data frame to summarize the information
+  summary_table <- data.frame(Variable = names(clinical_variables_freq),
+                              Frequency = as.numeric(clinical_variables_freq),
+                              Measured_in_Majority = measured_in_majority,
+                              Meaning = sapply(names(clinical_variables_freq), function(var) {
+                                # Retrieve variable meanings from metadata
+                                variable_meanings <- get_variable_meanings(datasets[1])
+                                # Return the meaning of the current variable or "Meaning not available"
+                                if (var <= length(variable_meanings)) {
+                                  return(variable_meanings[var])
+                                } else {
+                                  return("Meaning not available")
+                                }
+                              }))
+  
+  # Print the summary table
+  print(summary_table)
+} else {
+  print("No clinical variables found in the datasets.")
+}
+```
