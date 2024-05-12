@@ -1,56 +1,47 @@
 ---
-title: "Geo_dataset_breast"
-author: "Akash  Chandra Baidya"
-format: revealjs
+title: "geo_dataset_analysis"
+format: html
 editor: visual
 ---
 
-<!-- ## Quarto -->
+## Quarto
 
-<!-- Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>. -->
+## Dataset access with accession id
 
-<!-- ## Bullets -->
-
-<!-- When you click the **Render** button a document will be generated that includes: -->
-
-<!-- -   Content authored with markdown -->
-<!-- -   Output from executable code -->
-
-<!-- ## Code -->
-
-<!-- When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this: -->
 
 ```{r}
-1 + 1
-```
-## Install Packages 
-```{r  }
 # install.packages("GEOquery")
-
-```
-## Get Breast Dataset 
-
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r }
-
 library(GEOquery)
-datasets <- c("GSE60518", "GSE56843", "GSE43346", "GSE44723", "GSE32474", "GSE21411", 
-              "GSE19804", "GSE10245", "GSE13525", "GSE9586", "GSE9008", "GSE5579", 
-              "GSE6013", "GSE6400", "GSE5059")
+datasets <- c("GSE50948", "GSE30543", "GSE50697", "GSE46924", "GSE31192", "GSE35696",
+              "GSE35511", "GSE28645", "GSE33658", "GSE22865", "GSE32474", "GSE16179",
+              "GSE32161", "GSE24249", "GSE27444", "GSE29327", "GSE28448", "GSE27515",
+              "GSE22600", "GSE26298", "GSE27473", "GSE21422", "GSE28274", "GSE26910",
+              "GSE27567", "GSE27018", "GSE19777", "GSE22035", "GSE26459", "GSE22513",
+              "GSE15481", "GSE13477", "GSE11506", "GSE11352", "GSE11324", "GSE8565",
+              "GSE10270", "GSE9586", "GSE6800", "GSE8597")
 
 
 # Download each dataset separately
 geo_data_list <- lapply(datasets, function(dataset) getGEO(dataset,GSEMatrix = TRUE))
-```
-## Find clinical variables and common ones
-```{r }
 
+```
+
+## Table with summary of information
+```{r}
+# Extract phenotype data and store as tables
+phenotype_tables <- lapply(geo_data_list, function(data) {
+  pData_list <- pData(phenoData(data[[1]]))
+  sapply(pData_list, table)
+})
+# phenotype_tables
+
+
+```
+
+
+```{r}
 # Function to extract clinical variables from a GEO dataset
-get_clinical_variables <- function(dataset) {
-  # Download dataset
-  geo_data <- getGEO(dataset, GSEMatrix = TRUE)
-  
+get_clinical_variables <- function(geo_data) {
   # Extract clinical variables
   clinical_data <- pData(phenoData(geo_data[[1]]))
   clinical_variables <- colnames(clinical_data)
@@ -58,113 +49,80 @@ get_clinical_variables <- function(dataset) {
   return(clinical_variables)
 }
 
-# Apply the function to each dataset
-clinical_variables_list <- lapply(datasets, get_clinical_variables)
+# Apply the function to each pre-downloaded dataset
+clinical_variables_list <- lapply(geo_data_list, get_clinical_variables)
 
 # Calculate the frequency of each clinical variable across datasets
 clinical_variables_freq <- table(unlist(clinical_variables_list))
 
 # Filter for variables measured in the majority of datasets (e.g., in at least 50% of datasets)
-majority_variables <- names(clinical_variables_freq[clinical_variables_freq >= length(datasets)/2])
+majority_variables <- names(clinical_variables_freq[clinical_variables_freq >= length(geo_data_list)/2])
 
 # Print the identified clinical variables
 print(majority_variables)
 
-# Check if any clinical variables were identified
-if (length(clinical_variables_freq) > 0) {
-  # Check if each variable is measured in the majority of datasets
-  measured_in_majority <- names(clinical_variables_freq) %in% majority_variables
-  
-  # Create a data frame to summarize the information
-  summary_table <- data.frame(Variable = names(clinical_variables_freq),
-                              Frequency = as.numeric(clinical_variables_freq),
-                              Measured_in_Majority = measured_in_majority)
-  
-  # Print the summary table
-  print(summary_table)
-} else {
-  print("No clinical variables found in the datasets.")
-}
 
-#####
-# Function to retrieve variable meanings from the metadata
-get_variable_meanings <- function(dataset) {
-  # Download dataset
-  geo_data <- getGEO(dataset, GSEMatrix = TRUE)
-  
-  # Extract metadata
-  metadata <- pData(geo_data[[1]])
-  
-  # Return variable meanings from the metadata
-  return(metadata$description)
-}
-
-# Check if any clinical variables were identified
-if (length(clinical_variables_freq) > 0) {
-  # Check if each variable is measured in the majority of datasets
-  measured_in_majority <- names(clinical_variables_freq) %in% majority_variables
-  
-  # Create a data frame to summarize the information
-  summary_table <- data.frame(Variable = names(clinical_variables_freq),
-                              Frequency = as.numeric(clinical_variables_freq),
-                              Measured_in_Majority = measured_in_majority,
-                              Meaning = sapply(names(clinical_variables_freq), function(var) {
-                                # Retrieve variable meanings from metadata
-                                variable_meanings <- get_variable_meanings(datasets[1])
-                                # Return the meaning of the current variable or "Meaning not available"
-                                if (var <= length(variable_meanings)) {
-                                  return(variable_meanings[var])
-                                } else {
-                                  return("Meaning not available")
-                                }
-                              }))
-  
-  # Print the summary table
-  print(summary_table)
-} else {
-  print("No clinical variables found in the datasets.")
-}
 ```
 
 
-## Find clinical variables and meaning
-```{r }
-
-# Function to retrieve variable meanings from the metadata
-get_variable_meanings <- function(dataset) {
-  # Download dataset
-  geo_data <- getGEO(dataset, GSEMatrix = TRUE)
+## Trying out some popular distance measure for datasets
+```{r}
+# Function to compute KL divergence between two datasets
+kl_divergence <- function(dataset1, dataset2) {
+  # Check if datasets have the same dimensions
+  if (!all(dim(dataset1) == dim(dataset2))) {
+    stop("Datasets must have the same dimensions.")
+  }
   
-  # Extract metadata
-  metadata <- pData(geo_data[[1]])
+  # Compute KL divergence for each pair of corresponding vectors
+  kl_values <- sapply(1:ncol(dataset1), function(i) {
+    kl_div <- sum(dataset1[, i] * log(dataset1[, i] / dataset2[, i]), na.rm = TRUE)
+    return(kl_div)
+  })
   
-  # Return variable meanings from the metadata
-  return(metadata$description)
+  # Aggregate KL divergence values
+  kl_div <- mean(kl_values)
+  
+  return(kl_div)
 }
 
-# Check if any clinical variables were identified
-if (length(clinical_variables_freq) > 0) {
-  # Check if each variable is measured in the majority of datasets
-  measured_in_majority <- names(clinical_variables_freq) %in% majority_variables
-  
-  # Create a data frame to summarize the information
-  summary_table <- data.frame(Variable = names(clinical_variables_freq),
-                              Frequency = as.numeric(clinical_variables_freq),
-                              Measured_in_Majority = measured_in_majority,
-                              Meaning = sapply(names(clinical_variables_freq), function(var) {
-                                # Retrieve variable meanings from metadata
-                                variable_meanings <- get_variable_meanings(datasets[1])
-                                # Return the meaning of the current variable or "Meaning not available"
-                                if (var <= length(variable_meanings)) {
-                                  return(variable_meanings[var])
-                                } else {
-                                  return("Meaning not available")
-                                }
-                              }))
-  
-  # Print the summary table
-  print(summary_table)
-} else {
-  print("No clinical variables found in the datasets.")
+euclidean_distance <- function(dataset1, dataset2) {
+  sqrt(sum((dataset1 - dataset2)^2))
 }
+
+# Function to compute Manhattan distance between two datasets
+manhattan_distance <- function(dataset1, dataset2) {
+  sum(abs(dataset1 - dataset2))
+}
+
+# Function to compute correlation distance between two datasets
+# correlation_distance <- function(dataset1, dataset2) {
+#   1 - cor(dataset1, dataset2)
+# }
+
+# Generate two datasets
+dataset1 <- generate_dataset(100, 7)
+dataset2 <- generate_dataset(100, 7)
+
+# Compute KL divergence
+
+
+
+# Compute  distance
+kl_distance <- kl_divergence(dataset1, dataset2)
+distance <- euclidean_distance(dataset1, dataset2)
+manhattan_dist <- manhattan_distance(dataset1, dataset2)
+# correlation_dist <- correlation_distance(dataset1, dataset2)
+
+
+
+# Print the distances
+print(paste("Euclidean Distance:", distance))
+print(paste("Manhattan Distance:", manhattan_dist))
+# print(paste("Correlation Distance:", correlation_dist))
+print(paste("kl divergence:", kl_distance))
+
+
+
+
 ```
