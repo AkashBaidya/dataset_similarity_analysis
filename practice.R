@@ -333,3 +333,52 @@ kl_distance <- kl_divergence(dataset1, dataset2)
 
 # Print the KL divergence
 print(kl_distance)
+
+# List of packages to install
+packages <- c(
+  "ball", "cramer", "crossmatch", "diproperm", "Ecume", "energy", 
+  "FNN", "GSAR", "gTests", "gCat", "gTestsMulti", "hypoRF", 
+  "kernlab", "kerTests", "KMD", "LPKsample", "multicross"
+)
+
+# Function to install packages
+install_if_missing <- function(packages) {
+  for (pkg in packages) {
+    if (!require(pkg, character.only = TRUE)) {
+      install.packages(pkg, dependencies = TRUE)
+      library(pkg, character.only = TRUE)
+    }
+  }
+}
+
+# Install the packages
+install_if_missing(packages)
+
+
+# List of packages to load (excluding 'crossmatch' and 'multicross')
+packages <- c(
+  "ball", "cramer", "diproperm", "Ecume", "energy", 
+  "FNN", "GSAR", "gTests", "gCat", "gTestsMulti", "hypoRF", 
+  "kernlab", "kerTests", "KMD", "LPKsample"
+)
+
+# Function to load packages
+load_packages <- function(packages) {
+  for (pkg in packages) {
+    if (!require(pkg, character.only = TRUE)) {
+      warning(paste("Package", pkg, "is not installed. Please install it first."))
+    } else {
+      library(pkg, character.only = TRUE)
+    }
+  }
+}
+
+divergence_KL<- KL.divergence(dataset1, dataset2, k = 1, algorithm=c("kd_tree", "cover_tree", "brute"))
+set.seed(1000)
+X<- rexp(10000, rate=0.2)
+Y<- rexp(10000, rate=0.4)
+
+KL.divergence(X, Y, k=5)
+# Load the packages
+load_packages(packages)
+

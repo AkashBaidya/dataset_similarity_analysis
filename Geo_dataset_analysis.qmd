@@ -12,6 +12,29 @@ editor: visual
 ```{r}
 # install.packages("GEOquery")
 library(GEOquery)
+# List of packages to load (excluding 'crossmatch', "GSAR" and 'multicross')
+packages <- c(
+  "Ball", "cramer", "diproperm", "Ecume", "energy", 
+  "FNN", "gTests", "gCat", "gTestsMulti", "hypoRF", 
+  "kernlab", "kerTests", "KMD", "LPKsample"
+)
+
+# Function to load packages
+load_packages <- function(packages) {
+  for (pkg in packages) {
+    if (!require(pkg, character.only = TRUE)) {
+      warning(paste("Package", pkg, "is not installed. Please install it first."))
+    } else {
+      library(pkg, character.only = TRUE)
+    }
+  }
+}
+
+# Load the packages
+load_packages(packages)
+
+# Convert the list into a data frame with rows as characteristic variables and columns as datasets
+library(dplyr)
 datasets <- c("GSE50948", "GSE30543", "GSE50697", "GSE46924", "GSE31192", "GSE35696",
               "GSE35511", "GSE28645", "GSE33658", "GSE22865", "GSE32474", "GSE16179",
               "GSE32161", "GSE24249", "GSE27444", "GSE29327", "GSE28448", "GSE27515",
@@ -36,8 +59,25 @@ phenotype_tables <- lapply(geo_data_list, function(data) {
 # phenotype_tables
 
 
-```
+phenotype_tables <- lapply(geo_data_list, function(data) {
+  # Extract phenotype data
+  pData_list <- pData(phenoData(data[[1]]))
+  
+  # Filter columns that contain the word "characteristic"
+  characteristic_columns <- pData_list[, grepl("characteristic", names(pData_list))]
+  
+  # Summarize values in these columns
+  characteristic_summary <- lapply(characteristic_columns, table)
+  
+  return(characteristic_summary)
+})
 
+# Print the results
+print(phenotype_tables)
+
+
+```
+## clinical variables (not useful) 
 
 ```{r}
 # Function to extract clinical variables from a GEO dataset
@@ -60,6 +100,98 @@ majority_variables <- names(clinical_variables_freq[clinical_variables_freq >= l
 
 # Print the identified clinical variables
 print(majority_variables)
+
+
+```
+## All Characterstatic summary in datasets
+```{r}
+
+
+# Initialize an empty list to store results
+characteristic_values_list <- vector("list", length(geo_data_list))
+
+# Loop through each dataset
+for (i in seq_along(geo_data_list)) {
+  data <- geo_data_list[[i]]
+  # Extract phenotype data
+  pData_list <- pData(phenoData(data[[1]]))
+  
+  # Filter columns that contain the word "characteristic"
+  characteristic_columns <- pData_list[, grepl("characteristic", names(pData_list))]
+  
+  # Store characteristic columns and their values
+  characteristic_values <- lapply(characteristic_columns, unique)
+  
+  # Store in the result list with dataset index as name
+  characteristic_values_list[[i]] <- characteristic_values
+}
+
+
+
+# Create an empty data frame to store final results
+characteristic_summary_df <- data.frame()
+
+# Populate the data frame
+for (i in seq_along(characteristic_values_list)) {
+  dataset <- characteristic_values_list[[i]]
+  
+  for (characteristic in names(dataset)) {
+    values <- paste(dataset[[characteristic]], collapse = ", ")
+    characteristic_summary_df[characteristic, as.character(i)] <- values
+  }
+}
+
+# Convert row names to a proper column
+characteristic_summary_df <- tibble::rownames_to_column(characteristic_summary_df, "Characteristic")
+
+# Print the resulting data frame
+print(characteristic_summary_df)
+
+
+
+
+
+
+```
+## All variable summary in datasets
+```{r}
+
+# Initialize an empty list to store results
+variable_values_list <- vector("list", length(geo_data_list))
+
+# Loop through each dataset
+for (i in seq_along(geo_data_list)) {
+  data <- geo_data_list[[i]]
+  # Extract phenotype data
+  pData_list <- pData(phenoData(data[[1]]))
+  
+  # Store all columns and their unique values
+  variable_values <- lapply(pData_list, unique)
+  
+  # Store in the result list with dataset index as name
+  variable_values_list[[i]] <- variable_values
+}
+
+# Create an empty data frame to store final results
+variable_summary_df <- data.frame()
+
+# Populate the data frame
+for (i in seq_along(variable_values_list)) {
+  dataset <- variable_values_list[[i]]
+  
+  for (variable in names(dataset)) {
+    values <- paste(dataset[[variable]], collapse = ", ")
+    variable_summary_df[variable, as.character(i)] <- values
+  }
+}
+
+# Convert row names to a proper column
+variable_summary_df <- tibble::rownames_to_column(variable_summary_df, "Variable")
+
+# Print the resulting data frame
+print(variable_summary_df)
+
+
 
 
 ```
@@ -100,6 +232,13 @@ manhattan_distance <- function(dataset1, dataset2) {
 #   1 - cor(dataset1, dataset2)
 # }
 
+
+generate_dataset <- function(n_rows, n_cols) {
+  matrix(abs(rnorm(n_rows * n_cols)), nrow = n_rows)
+}
+
+
+
 # Generate two datasets
 dataset1 <- generate_dataset(100, 7)
 dataset2 <- generate_dataset(100, 7)
@@ -121,6 +260,16 @@ print(paste("Euclidean Distance:", distance))
 print(paste("Manhattan Distance:", manhattan_dist))
 # print(paste("Correlation Distance:", correlation_dist))
 print(paste("kl divergence:", kl_distance))
+
+
+
+
+```
+
+
+
+```{r}
+
 
 
 
